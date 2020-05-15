@@ -58,7 +58,7 @@ class Plotter:
                 n: x coordinate of the subplot. Must be integer. By default = 1 but not needed when val is type nested list
                 m: y coordinate of the subplot. Must be integer. By default = 1 but not needed when val is type nested list
                 label_: label of histograms. By default "histo", can be a list of dimension equal to val dimension
-                hissttype_ : type of plotting hystos. By default step for everyone, can be a list of dimension equal to val dimension
+                histtype_ : type of plotting hystos. By default step for everyone, can be a list of dimension equal to val dimension
                 color_: color of histograms. By default = 'fuchsia' for everyone, can be a list of dimension equal to val dimension
                 bins_: number of bins. By default 50 for everyone, can be a list of dimension equal to val dimension
                 ret: if you want current figure or axis after plot
@@ -76,6 +76,9 @@ class Plotter:
 
                 if not isinstance(label_, list):
                     label_ = [label_]*len(val)
+                
+                if not isinstance(bins_, list):
+                    bins_ = [bins_]*len(val)
 
                 if not isinstance(histtype_, list):
                     histtype_ = [histtype_]*len(val)
@@ -83,8 +86,8 @@ class Plotter:
                 if not isinstance(color_, list):
                     color_ = [color_]*len(val)
 
-                for v, ax, col, lab, ra, ht in zip(val, self.axes.flat, color_, label_, range_, hissttype_ ):
-                    ax.hist(v, histtype=ht, color=col, label=lab, range=ra)
+                for v, ax, col, b, lab, ra, ht in zip(val, self.axes.flat, color_, bins_, label_, range_, histtype_ ):
+                    ax.hist(v, histtype=ht, bins=b, color=col, label=lab, range=ra)
 
             else:
                     
@@ -94,7 +97,7 @@ class Plotter:
                     else:
                         range_ = (val.min(), val.max())
                 
-                self.axes[n,m].hist(val, histtype=histtype_, color=color_, label=label_, density=density_, range=range_)
+                self.axes[n,m].hist(val, histtype=histtype_, color=color_, bins=bins_, label=label_, density=density_, range=range_)
 
             if ret:
                 return self.figure, self.axes
@@ -294,6 +297,7 @@ class Plotter:
             self.namedhistos = {}
             self.keys = []
             self.texts = []
+            self.legend_list = []
 
         def addText(self, coord, s):
             """
@@ -347,7 +351,7 @@ class Plotter:
             """
                 Method to fill ROOT.TH1F histograms. Works for both self.histos and self.namedhistos as follows:
                 val: single list or nested list/np.array/pd.Series with arrays to be histogrammed.
-                name: list of str names to give to histos. Importantg to give different names to avoid memory leaks (can be random names)
+                name: list of str names to give to histos. Important to give different names to avoid memory leaks (can be random names)
                 named: Here we select which type of histograms we want to fill. If named=True self.namedhistos will be filled -> name parameter must be equal to self.keys!!!
                       By default named=False so self.histos will be filled.
                 bins_: number of bins of the histograms. Can be a list if we want different binnings, dimension equal to val dimension.
@@ -575,7 +579,7 @@ class Plotter:
                 else:
                     self.histos[n].GetYaxis().SetTitle(ylabel)
 
-        def createLegend(self, loc):
+        def createLegend(self, loc, ret=False):
             """
                 Create legend for canvases
                 loc: ( , , , ) with coordinates, fixed for each canvas otherwise predefined location 
@@ -590,6 +594,9 @@ class Plotter:
 
             self.legend = ROOT.TLegend(loc[0], loc[1], loc[2], loc[3])
             self.legend.SetBorderSize(0)
+
+            if ret:
+                return self.legend
 
         def AddEntry(self, h, name):
             """
@@ -634,7 +641,8 @@ class Plotter:
                 c.Draw()
                 return c
 
-        def plotByName(self, names, x_dim=1000, y_dim=700, reso=1000, same=False, legend_=False):
+
+        def plotByName(self, names, x_dim=1000, y_dim=700, reso=1000, same=False, legend_=False, divide=False):
             """
                 Plot histograms by name from self.nameshistos.
                 names: list of keys to be plot. if 'all' in names then all self.keys() will  be plotted.
@@ -651,7 +659,7 @@ class Plotter:
                 names = self.keys
 
             if all(n in self.keys for n in names ) and len(self.namedhistos) != 0:
-                if not same:
+                if not same and not divide:
                     canvas = []
                     for n in names:
                         c = ROOT.TCanvas("c"+str(n), "c"+str(n), reso, reso, x_dim, y_dim)
@@ -669,6 +677,83 @@ class Plotter:
                         c.Draw()
                         canvas.append(c)
                     return canvas
+
+                elif not same and divide:
+                    c = ROOT.TCanvas("c", "c", reso, reso, x_dim, y_dim)
+                    c.Divide(divide[0], divide[1])
+                    for i,n in enumerate(names):
+                        c.cd(i+1)
+                        if legend_: 
+                            self.createLegend(legend_) #create legend, here legend_ = (,,,) coordinates
+                            self.AddEntry(self.namedhistos[n], n)
+                        self.namedhistos[n].Draw("hist")
+                        if len(self.texts) != 0:
+                            for coord, text in self.texts:
+                                T = ROOT.TLatex()
+                                T.DrawLatexNDC(coord[0], coord[1], text)
+                        
+                        if legend_:
+                            self.legend.Draw()
+                    c.cd()
+                    c.Draw()
+                    return c
+
+                elif same and not divide:
+                    c = ROOT.TCanvas("c", "c", reso, reso, x_dim, y_dim)
+                    if legend_: self.createLegend(legend_) #create legend, here legend_ = (,,,) coordinates
+                    for ind, n in enumerate(names):
+                        if ind == 0:
+                            self.namedhistos[n].Draw("hist")
+                            if legend_: self.AddEntry(self.namedhistos[n], n)
+                        else:
+                            self.namedhistos[n].Draw("hist same")
+                            if legend_: self.AddEntry(self.namedhistos[n], n)
+                    if len(self.texts) != 0:
+                            for coord, text in self.texts:
+                                T = ROOT.TLatex()
+                                T.DrawLatexNDC(coord[0], coord[1], text)
+
+                    if legend_:
+                        self.legend.Draw()
+                    c.Draw()
+                    return c
+
+                elif same and divide:
+                    if len(same) != divide[0]*divide[1]:
+                        sys.exit("One pad left black, suggesting to check dimensions")
+
+                    c = ROOT.TCanvas("c", "c", reso, reso, x_dim, y_dim)
+                    c.Divide(divide[0], divide[1])
+                    leg_idx = 0
+                    for key, n in zip(same.keys(), same.values()): #here key is the subplot and values are named histos we want to plot on same
+                        if legend_: 
+                            leg = self.createLegend(legend_, ret=True) #create legend, here legend_ = (,,,) coordinates
+                        c.cd(key)
+                        for idx, n_ in enumerate(n):
+                            if idx == 0:
+                                self.namedhistos[n_].Draw("hist")
+                                leg.AddEntry(self.namedhistos[n_], n_)
+
+                            else:
+                                self.namedhistos[n_].Draw("hist same")
+                                leg.AddEntry(self.namedhistos[n_], n_)
+                        
+                        if len(self.texts) != 0:
+                            for coord, text in self.texts:
+                                T = ROOT.TLatex()
+                                T.DrawLatexNDC(coord[0], coord[1], text)
+
+                        self.legend_list.append(leg)
+                        if legend_:
+                             self.legend_list[leg_idx].Draw()
+                        c.Update()
+
+                        leg_idx +=1
+
+                    c.cd(0)
+                    c.Draw()
+                    return c   
+
                 else:
                     c = ROOT.TCanvas("c", "c", reso, reso, x_dim, y_dim)
                     if legend_: self.createLegend(legend_) #create legend, here legend_ = (,,,) coordinates
