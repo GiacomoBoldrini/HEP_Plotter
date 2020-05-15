@@ -26,7 +26,7 @@ class Plotter:
             return self.figure
             
     
-    class SubPlots:
+    class SubPlotters:
         """
             Matplotlib.pyplot helper for subplots
         """
