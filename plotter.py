@@ -299,6 +299,9 @@ class Plotter:
             self.texts = []
             self.legend_list = []
 
+        def getKeys(self):
+            return self.keys
+
         def addText(self, coord, s):
             """
                 Add text to list.
@@ -346,7 +349,92 @@ class Plotter:
             for n in name:
                 if n in self.keys:
                     print("...{} is present".format(n))
+
+        def print(self):
+            print(self.namedhistos)
+
         
+        def histFromRoot(self, path, tree, named=True, bins_ = 30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False ):
+            """
+
+            """
+
+            f = ROOT.TFile(path)
+            t = f.Get(tree)
+
+            branch_names = [i.GetName() for i in t.GetListOfBranches()] #branch names
+
+            f.Close()
+
+            if named:
+                if len(self.keys) == 0:
+                    self.keys = branch_names #so we always look at self.keys, user can specify branch of interest ahead
+
+                if not isinstance(linecolor, list):
+                    linecolor = [linecolor]*len(self.keys)
+
+                if not isinstance(bins_, list):
+                    bins_ = [bins_]*len(self.keys)
+                
+                if not isinstance(fillcolor, list):
+                    fillcolor = [fillcolor]*len(self.keys)
+
+                if not isinstance(fillstyle, list):
+                    fillstyle = [fillstyle]*len(self.keys)
+
+                if not isinstance(linestyle, list):
+                    linestyle = [linestyle]*len(self.keys)
+
+                if ranges:
+                    if len(ranges) != len(self.keys):
+                        sys.exit("Number of ranges must be equal to number of variables being plotted")
+
+                idx = 0
+
+                print("...Filling Named Histograms")
+
+                for branch, fc, fs, lc, ls, b in zip(self.keys, fillcolor, fillstyle, linecolor, linestyle, bins_):
+                    f = ROOT.TFile(path)
+                    t = f.Get(tree)
+                    var = []
+                    print("@Filling: ", branch)
+                    #filling single variables = multiple scan of tree but less memory employment -> Quicker
+                    #appending to list to list [[event1], [event2], ...] takes O(1) while appending everything 
+                    #into one list [1,2,3,...] makes everything very expensive.
+                    var = []
+                    for event in t:
+                        try:
+                            var.append(list(getattr(event, branch)))
+                        except:
+                            var.append([getattr(event, branch)])
+
+                    var = [item for sublist in var for item in sublist]
+
+                    f.Close()
+
+                    if ranges == False:
+                        r = [min(var), max(var)]
+
+                    else:
+                        if ranges[idx] == 'all':
+                            r = [min(var), max(var)]
+                        else:
+                            r = ranges[idx]
+
+                    max_, min_ = r[1], r[0]
+                    h = ROOT.TH1F(branch, branch, b, min_, max_)
+                    h.SetFillStyle(fs)
+                    h.SetFillColor(fc)
+                    h.SetLineColor(lc)
+                    h.SetLineStyle(ls)
+                    for value in var:
+                        h.Fill(value)
+                    
+            
+                    self.namedhistos[branch] = h
+
+                    idx += 1
+
         def hist(self, val, name, named=False, bins_=30, linestyle = 1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False ):
             """
                 Method to fill ROOT.TH1F histograms. Works for both self.histos and self.namedhistos as follows:
@@ -786,6 +874,9 @@ class Plotter:
             else:
                 if not isinstance(n,list): n = [n]
                 return [self.histos[i] for i in n]
+
+        def getDict(self):
+            return self.namedhistos
 
         def getHistosByName(self, names, all_=False):
             """
