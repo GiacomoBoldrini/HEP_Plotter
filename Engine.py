@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np 
 import sys
 import matplotlib.pyplot as plt
+import math as mt
 
 
 class RootHisto:
@@ -11,15 +12,48 @@ class RootHisto:
         self.attributes = []
         self.filepaths = []
         self.trees = []
-        #self.filename = self.path.split(".")[-2][1:] + "_" #will be added to TH1F name to avoid memory leaks
 
-    def rangeDefiner(self, rangedict):
+    def rangeDefiner(self, rangedict = {"pt": [0, 400], "eta": [-5,5], "phi":[-mt.pi, mt.pi], "btag":[-1,1]}):
+        """
+            As TH1F do not allow dynamical rebinning after object innitialization, 
+            it is important to define the ranges of variables a priori.
+            Arguments:
+            rangedict: a dictionary of type {var:[min, max], ...} where var can be a full name to avoid 
+                        ambiguity or just a fragment for general use -> it will check if branches have this fragment
+            
+            rangedict will be stored in an attribute self.ranges used only when filling histos. Can be changed 
+            when filling new histograms at any time.
+        """
         self.ranges = rangedict
 
     def fillROOT(self, path, tree, n_ev, name_of='namehisto', branches='all',  bins = 30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False):
+        """
+            fillROOT will fill named dictionaries starting from .root files and trees.
+            Arguments:
+            path: list of paths to .root files
+            tree: list of trees to pairwise reading root files
+            n_ev: list of maximum number of events to read from all files. if n_ev='all' all events will be red from all files,
+                    if 'all' in n_ev then it will red all the entries from pairwise file
+            name_of: list of names. This names will be the attributes names of the class. Avoid redefinitions to avoid 
+                    overwriting. To access attributes like name_of='namehisto' just type self.namehisto. This objects
+                    will be dictionaries of branches and relative histos like self.namehisto = {"branch_name": TH1F}
+            branches: list or nested list of branches to read from pairwise trees. If 'all' all branches of all files will be filled,
+                        if 'all' in branches all branches of pairwise tree will be filled.
+            bins: list or nested list of binnings. If int (list) all the histograms (related to tree list position) will have the same 
+                    binning
+            linestyle: same as above, linecolor of TH1F
+            linecolor: same as above, linecolor of TH1F
+            fillcolor: same as above, fillcolor of TH1F
+            fillstyle: same as above, fillstyle of TH1F
+            ranges: list or nested list of ranges. Will be overrided if self.ranges is present (more specific)
+        """
         
         assert len(path) == len(tree), "[ERROR] Dimension of root files and trees does not match"
         assert len(path) == len(name_of), "[ERROR] Dimension of names and files does not match"
+
+        if self.ranges and ranges: 
+            print("[INFO]: Ranges from rangeDefiner will shadow input ranges")
+            ranges = False
 
         if not isinstance(branches, list):
                 branches = [branches]*len(path)
@@ -85,7 +119,7 @@ class RootHisto:
 
             f.Close()
 
-            if ranges_:
+            if ranges_ and not self.ranges:
                 if len(ranges_) != len(branches_) and ranges_ != 'all':
                     sys.exit("Number of ranges must be equal to number of variables being plotted")
 
@@ -134,15 +168,22 @@ class RootHisto:
 
                 f.Close()
 
+
                 if ranges[idx] == False:
-                    r = [min(var), max(var)]
+                    if self.ranges:
+                        for range_key in self.ranges.keys():
+                            if range_key in branch:
+                                r = self.ranges[range_key]
+                    else:
+                        r = [min(var), max(var)]
 
                 else:
                     if ranges[idx] == 'all':
                         r = [min(var), max(var)]
                     else:
                         r = ranges[idx]
-            
+
+                print("Branch: {}, range: {}".format(branch, r))
                 max_, min_ = r[1], r[0]
                 h = ROOT.TH1F(filename + branch, filename + branch, b, min_, max_)
                 h.SetFillStyle(fs)
@@ -161,11 +202,21 @@ class RootHisto:
 
 
     def printAttr(self, name):
+        """
+            Print the content of an attribute of the class.
+            Arguments:
+            name: name  of the attribute such as "namehisto"
+        """
         if name not in self.attributes:
             sys.exit("[ERROR] Name not in collection, change name")
         print(getattr(self, name))
 
     def getHistoColl(self, coll_name):
+        """
+            Return a collection of histograms from attributes.
+            Attributes:
+            coll_name: name of the attribute such as "namehisto"
+        """
         if not isinstance(coll_name, list): coll_name  = [coll_name]
         assert all([names in self.attributes for names in coll_name]), "[ERROR] given names not in attributes"
 
@@ -176,6 +227,12 @@ class RootHisto:
         return dicts
 
     def getSingleHisto(self, coll_name, br_name):
+        """
+            Get a single histo from one of collection.
+            Attributes:
+            coll_name: name of the attribute such as "namehisto"
+            br_name: name of the key of the dictionary
+        """
         assert not isinstance(coll_name, list), "[ERROR] only one col name allowed"
 
         h_dict = getattr(self, coll_name)
@@ -186,6 +243,13 @@ class RootHisto:
     
 
     def rebinCollection(self, bins_, coll_name, branches='all'):
+        """
+            Rebinning of TH1F is possible with fixed range and for one collection.
+            Arguments:
+            bins_: list of bins to pairwise binning with collection.keys()
+            coll_name: name of the collection such as "namehisto"
+            branches: name of the branches to  be modified, pairwise with bins_ entries
+        """
 
         if not isinstance(bins_, list):
             bins_ = [bins_]*len(branches)

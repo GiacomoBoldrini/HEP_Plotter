@@ -1,5 +1,3 @@
-from plotter import Plotter
-#from HEPlotter import HEPlotter
 from Engine import RootHisto
 import matplotlib.pyplot as plt 
 import ROOT
@@ -28,6 +26,9 @@ path = path + "FullROOTtree/"
 mkdir(path)
 
 h = RootHisto()
+ranges = {"pt": [0, 400], "eta": [-5,5], "phi":[-mt.pi, mt.pi], "btag":[-1,1]}
+h.rangeDefiner(ranges)
+
 h.fillROOT(path=[file_path_1, file_path_2], tree=["SaveAllJets/Jets"]*2, n_ev = 200, name_of=["323725", "MC"], branches='all',  bins = 30, linestyle=1, linecolor = [ROOT.kBlue, ROOT.kMagenta], fillcolor = 0, fillstyle = 0, ranges=False)
 h.printAttr("MC") #print content of "MC" dictionary
 h.printAttr("323725") #print content of "323725" dictionary
@@ -35,7 +36,6 @@ h.printAttr("323725") #print content of "323725" dictionary
 MC_pf_pt = h.getSingleHisto("MC", "pf_pt")
 c = ROOT.TCanvas("c", "c", 1000, 700)
 MC_pf_pt.Draw("hist")
-MC_pf_pt.SetAxisRange(0, 200, "X")
 c.Draw()
 c.Print(path + "bins30.png")
 
