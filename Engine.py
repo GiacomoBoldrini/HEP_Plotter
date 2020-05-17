@@ -13,6 +13,9 @@ class RootHisto:
         self.trees = []
         #self.filename = self.path.split(".")[-2][1:] + "_" #will be added to TH1F name to avoid memory leaks
 
+    def rangeDefiner(self, rangedict):
+        self.ranges = rangedict
+
     def fillROOT(self, path, tree, n_ev, name_of='namehisto', branches='all',  bins = 30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False):
         
         assert len(path) == len(tree), "[ERROR] Dimension of root files and trees does not match"
@@ -180,6 +183,31 @@ class RootHisto:
         assert br_name in h_dict.keys(), "[ERROR] {}  not in collection required: {} ".format(br_name, coll_name)
 
         return h_dict[br_name]
+    
+
+    def rebinCollection(self, bins_, coll_name, branches='all'):
+
+        if not isinstance(bins_, list):
+            bins_ = [bins_]*len(branches)
+
+        else:
+            assert len(bins_) == len(branches), "[ERROR] Same number of bins for number of branches"
+
+        assert not isinstance(coll_name, list), "[ERROR] Parameter coll_name: {} was found to be list, only one name accepted".format(coll_name)
+        
+        if branches == 'all':
+            branches = getattr(self, coll_name).keys()
+        else:
+            if not isinstance(branches, list): branches = [branches]
+
+        h_dict = getattr(self, coll_name)
+
+        for br, bi in zip(branches, bins_):
+            h_dict[br].Rebin(bi)
+
+        setattr(self, coll_name, h_dict) #overload the attribute with new dictionary
+
+        return
 
 
 

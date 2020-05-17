@@ -35,7 +35,16 @@ h.printAttr("323725") #print content of "323725" dictionary
 MC_pf_pt = h.getSingleHisto("MC", "pf_pt")
 c = ROOT.TCanvas("c", "c", 1000, 700)
 MC_pf_pt.Draw("hist")
+MC_pf_pt.SetAxisRange(0, 200, "X")
 c.Draw()
-c.Print("ciao.png")
+c.Print(path + "bins30.png")
+
+h.rebinCollection(bins_=5, coll_name="MC", branches='pf_pt') #rebinning only previous histo with 5 bins
+
+MC_pf_pt = h.getSingleHisto("MC", "pf_pt")
+c = ROOT.TCanvas("c", "c", 1000, 700)
+MC_pf_pt.Draw("hist")
+c.Draw()
+c.Print(path + "bins5.png")
 
 
