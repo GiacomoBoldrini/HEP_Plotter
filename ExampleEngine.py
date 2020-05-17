@@ -47,4 +47,14 @@ MC_pf_pt.Draw("hist")
 c.Draw()
 c.Print(path + "bins5.png")
 
+h.markerstyleCollection(markerstyle=22, coll_name="MC", branches='all')
+h.markercolorCollection(markercolor=ROOT.kMagenta, coll_name="MC", branches='all')
+h.xlabelsCollection(labels='branch', coll_name="MC", branches='all')
+
+MC_pf_pt = h.getSingleHisto("MC", "calo_pt")
+c = ROOT.TCanvas("c", "c", 1000, 700)
+MC_pf_pt.Draw("hist P")
+c.Draw()
+c.Print(path + "Star.png")
+
 

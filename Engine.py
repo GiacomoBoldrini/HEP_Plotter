@@ -146,7 +146,6 @@ class RootHisto:
             print("...Filling Named Histograms")
 
             for branch, fc, fs, lc, ls, b in zip(branches_, fillcolor_, fillstyle_, linecolor_, linestyle_, bins_):
-                print(branch)
                 f = ROOT.TFile(path_)
                 t = f.Get(tree_)
                 var = []
@@ -183,7 +182,6 @@ class RootHisto:
                     else:
                         r = ranges[idx]
 
-                print("Branch: {}, range: {}".format(branch, r))
                 max_, min_ = r[1], r[0]
                 h = ROOT.TH1F(filename + branch, filename + branch, b, min_, max_)
                 h.SetFillStyle(fs)
@@ -272,6 +270,93 @@ class RootHisto:
         setattr(self, coll_name, h_dict) #overload the attribute with new dictionary
 
         return
+
+    def linestyleCollection(self, linestyle=1, coll_name='all', branches='all'):
+        """
+            Change Linestyle of a collection
+        """
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+            if not isinstance(linestyle, list):
+                linestyle = [linestyle]*len(branches)
+            else:
+                assert len(linestyle) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+            for branch, ls in zip(branches, linestyle):
+                h_dict[branch].SetLineStyle(ls)
+            setattr(self, branch, h_dict)
+
+    def markerstyleCollection(self, markerstyle=20, coll_name='all', branches='all'):
+        """
+            Change markerstyle of collection
+        """ 
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+            if not isinstance(markerstyle, list):
+                markerstyle = [markerstyle]*len(branches)
+            else:
+                assert len(markerstyle) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+            for branch, ms in zip(branches, markerstyle):
+                h_dict[branch].SetMarkerStyle(ms)
+            setattr(self, branch, h_dict)
+
+    def markercolorCollection(self, markercolor=20, coll_name='all', branches='all'):
+        """
+            Change marker color for collection
+        """
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+            if not isinstance(markercolor, list):
+                markercolor = [markercolor]*len(branches)
+            else:
+                assert len(markercolor) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+            for branch, mc in zip(branches, markercolor):
+                h_dict[branch].SetMarkerColor(mc)
+            setattr(self, branch, h_dict)
+
+
+    def xlabelsCollection(self, labels='branch', coll_name='all', branches='all'):
+        """
+            Label X axis of a collection
+        """
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+    
+            if not isinstance(labels, list) and labels != 'branch':
+                labels = [labels]*len(branches)
+            elif labels == 'branch': labels = h_dict.keys()
+            else:
+                assert len(labels) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+
+            for branch, label in zip(branches, labels):
+                h_dict[branch].GetXaxis().SetTitle(label)
+            setattr(self, branch, h_dict)
+
+        
+
 
 
 
