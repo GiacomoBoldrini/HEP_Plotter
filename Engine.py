@@ -4,6 +4,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import math as mt
+from array import array
 
 
 class RootHisto:
@@ -370,11 +371,18 @@ class RootHisto:
     def rebinCollection(self, bins_, coll_name, branches='all'):
         """
             Rebinning of TH1F is possible with fixed range and for one collection.
+            Attention: relies on TH1F::Rebin so for example bins_ = [2] then 2 bins of histo will be merged in one (so 100 bins
+                        -> 50 bin). If bins_ = [[0,1,4,7, ...], ] then the innner list is an array of variable width bin edges.
             Arguments:
             bins_: list of bins to pairwise binning with collection.keys()
             coll_name: name of the collection such as "namehisto"
             branches: name of the branches to  be modified, pairwise with bins_ entries
         """
+
+        if branches == 'all':
+            branches = getattr(self, coll_name).keys()
+        else:
+            if not isinstance(branches, list): branches = [branches]
 
         if not isinstance(bins_, list):
             bins_ = [bins_]*len(branches)
@@ -384,15 +392,13 @@ class RootHisto:
 
         assert not isinstance(coll_name, list), "[ERROR] Parameter coll_name: {} was found to be list, only one name accepted".format(coll_name)
         
-        if branches == 'all':
-            branches = getattr(self, coll_name).keys()
-        else:
-            if not isinstance(branches, list): branches = [branches]
-
         h_dict = getattr(self, coll_name)
 
         for br, bi in zip(branches, bins_):
-            h_dict[br].Rebin(bi)
+            if not isinstance(bi, list):
+                h_dict[br].Rebin(bi)
+            else:
+                h_dict[br] = h_dict[br].Rebin(len(bi)-1, "", array('d', bi))
 
         setattr(self, coll_name, h_dict) #overload the attribute with new dictionary
 
@@ -480,6 +486,52 @@ class RootHisto:
 
             for branch, label in zip(branches, labels):
                 h_dict[branch].GetXaxis().SetTitle(label)
+            setattr(self, branch, h_dict)
+
+    def ylabelsCollection(self, labels='branch', coll_name='all', branches='all'):
+        """
+            Label Y axis of a collection
+        """
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+    
+            if not isinstance(labels, list) and labels != 'branch':
+                labels = [labels]*len(branches)
+            elif labels == 'branch': labels = h_dict.keys()
+            else:
+                assert len(labels) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+
+            for branch, label in zip(branches, labels):
+                h_dict[branch].GetYaxis().SetTitle(label)
+            setattr(self, branch, h_dict)
+
+    def titlesCollection(self, titles='branch', coll_name='all', branches='all'):
+        """
+            Titles of a collection
+        """
+
+        if coll_name == 'all': coll_name = self.attributes
+        if not isinstance(coll_name, list) and coll_name != 'all': coll_name = [coll_name]
+        if not isinstance(branches, list) and branches != 'all': branches = [branches]
+        for name in coll_name:
+            h_dict = getattr(self, name)
+            if branches == 'all': branches = h_dict.keys()
+    
+            if not isinstance(titles, list) and titles != 'branch':
+                titles = [titles]*len(branches)
+            elif titles == 'branch': titles = h_dict.keys()
+            else:
+                assert len(titles) == len(branches), "[ERROR] Same number of styles for number of branches"
+
+
+            for branch, label in zip(branches, titles):
+                h_dict[branch].SetTitle(label)
             setattr(self, branch, h_dict)
 
         

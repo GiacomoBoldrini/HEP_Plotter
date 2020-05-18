@@ -66,3 +66,28 @@ c.SaveAs(path + "TwoUniformHistos_2.png")
 h.mergeColl(["Uniform1", "Uniform2"], merge_on="Uniform", keep=False)
 h.printAttr("Uniform") #should get the same config as first example line 35
 
+#change labels
+h.xlabelsCollection(labels='Uniform number', coll_name='Uniform', branches='all')
+h.ylabelsCollection(labels='Events', coll_name='Uniform', branches='all')
+
+#change binning
+h.rebinCollection(bins_=5, coll_name='Uniform', branches='all') # Here 5 bins will be merged into one for all histos of collection 'Unniform'
+
+#change title only of first histo
+h.titlesCollection(titles='A simple example', coll_name='Uniform', branches='firstVar')
+
+#retrieving collection:
+h_coll = h.getHistoColl("Uniform")
+
+#plotting
+c = ROOT.TCanvas("c", "c", 1000, 700)
+for index, key in enumerate(h_coll.keys()):
+    if index == 0:
+        h_coll[key].Draw("hist P")
+    else:
+        h_coll[key].Draw("hist P same")
+c.Draw()
+c.SaveAs(path + "TwoUniformHistos_3.png")
+
+
+
