@@ -80,6 +80,22 @@ class RootHisto:
 
 
     def fill(self, val, name_of='namehisto', bins=30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False, markerstyle = 22, markercolor = ROOT.kBlack, set_=True ):
+        """
+            fill will fill named dictionaries starting from list/np.ndarrays.
+            Arguments:
+            val: list/ np.ndarray of values
+            name_of: list [coll, key] or str [key, key]. This names will be the attributes names of the class. Avoid redefinitions to avoid 
+                    overwriting. To access attributes like name_of='namehisto' just type self.namehisto. This objects
+                    will be dictionaries of branches and relative histos like self.namehisto = {"branch_name": TH1F}
+            bins: list or nested list of binnings. If int (list) all the histograms (related to tree list position) will have the same 
+                    binning
+            linestyle: same as above, linecolor of TH1F
+            linecolor: same as above, linecolor of TH1F
+            fillcolor: same as above, fillcolor of TH1F
+            fillstyle: same as above, fillstyle of TH1F
+            ranges: list or nested list of ranges. Will be overrided if self.ranges is present (more specific)
+            set_: Set this dictionary as attribute of the class. Default = False will return the dictionary created
+        """
 
         assert isinstance(val, list) or isinstance(val, np.ndarray), "[ERROR] input argument is not a list/np.array"
         if hasattr(self, "ranges") and ranges: 
