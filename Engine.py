@@ -26,6 +26,86 @@ class RootHisto:
         """
         self.ranges = rangedict
 
+    def clearRange(self):
+        """
+            Clear attribute self.ranges
+        """
+
+        del self.ranges
+
+    def clearColl(self, coll_name):
+        """
+            Clear collection by name
+        """
+
+        delattr(self, coll_name)
+
+    def addNewToColl(self, var, merge_on='namedhisto', to_merge = 'namedhisto', bins=30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False, markerstyle = 22, markercolor = ROOT.kBlack):
+        print(to_merge)
+        histo_coll = self.fill(var, name_of = to_merge, set_=False, bins=bins, linestyle=linestyle, linecolor=linecolor, fillcolor=fillcolor, fillstyle=fillstyle, ranges=ranges, markerstyle=markerstyle, markercolor=markercolor)
+        histo = histo_coll[to_merge]
+        coll_ = getattr(self, merge_on)
+        coll_[to_merge] = histo
+        setattr(self, merge_on, coll_)
+
+
+    def fill(self, val, name_of='namehisto', bins=30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False, markerstyle = 22, markercolor = ROOT.kBlack, set_=True ):
+
+        assert isinstance(val, list) or isinstance(val, np.ndarray), "[ERROR] input argument is not a list/np.array"
+        if hasattr(self, "ranges") and ranges: 
+            print("[INFO]: Ranges from rangeDefiner will shadow input ranges")
+            ranges = False
+        else:
+            assert len(ranges)==2, "[ERROR] multiple ranges for single histo, check your inputs"
+
+        if isinstance(name_of, list) or isinstance(name_of, np.ndarray):
+            assert len(name_of) == 2, "[ERROR] name_of list contains too many elements"
+            coll_name = name_of[0]
+            histo_name = name_of[1]
+        else:
+            coll_name = name_of
+            histo_name = name_of
+
+
+        if coll_name in self.attributes:
+            sys.exit("[ERROR] name of collection already in class, change name_of")
+        else:
+            self.attributes.append(coll_name)
+
+        namedhisto = {}
+
+        if ranges == False:
+            if hasattr(self, "ranges"):
+                for range_key in self.ranges.keys():
+                    r = self.ranges[range_key]
+            else:
+                r = [min(var), max(var)]
+
+        else:
+            if ranges == 'all':
+                r = [min(var), max(var)]
+            else:
+                r = ranges
+
+        max_, min_ = r[1], r[0]
+        h = ROOT.TH1F(histo_name, histo_name, bins, min_, max_)
+        h.SetFillStyle(fillstyle)
+        h.SetFillColor(fillcolor)
+        h.SetLineColor(linecolor)
+        h.SetLineStyle(linestyle)
+        h.SetMarkerStyle(markerstyle)
+        h.SetMarkerColor(markercolor)
+        for value in val:
+            h.Fill(value)
+        
+        namedhisto[histo_name] = h
+
+        if set_:
+            setattr(self, coll_name, namedhisto)
+        else:
+            return namedhisto
+
+
     def fillROOT(self, path, tree, n_ev, name_of='namehisto', branches='all',  bins = 30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False):
         """
             fillROOT will fill named dictionaries starting from .root files and trees.
@@ -51,7 +131,7 @@ class RootHisto:
         assert len(path) == len(tree), "[ERROR] Dimension of root files and trees does not match"
         assert len(path) == len(name_of), "[ERROR] Dimension of names and files does not match"
 
-        if self.ranges and ranges: 
+        if hasattr(self, "ranges") and ranges: 
             print("[INFO]: Ranges from rangeDefiner will shadow input ranges")
             ranges = False
 
@@ -169,7 +249,7 @@ class RootHisto:
 
 
                 if ranges[idx] == False:
-                    if self.ranges:
+                    if hasattr(self, "ranges"):
                         for range_key in self.ranges.keys():
                             if range_key in branch:
                                 r = self.ranges[range_key]
@@ -221,8 +301,9 @@ class RootHisto:
         dicts = []
         for name in coll_name:
             dicts.append(getattr(self, name))
-
-        return dicts
+        
+        if len(dicts) == 1: return dicts[0]
+        else: return dicts
 
     def getSingleHisto(self, coll_name, br_name):
         """
