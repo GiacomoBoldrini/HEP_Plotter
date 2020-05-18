@@ -62,3 +62,7 @@ var2hist.Draw("hist P same")
 c.Draw()
 c.SaveAs(path + "TwoUniformHistos_2.png")
 
+#merge collection
+h.mergeColl(["Uniform1", "Uniform2"], merge_on="Uniform", keep=False)
+h.printAttr("Uniform") #should get the same config as first example line 35
+

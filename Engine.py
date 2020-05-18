@@ -41,12 +41,42 @@ class RootHisto:
         delattr(self, coll_name)
 
     def addNewToColl(self, var, merge_on='namedhisto', to_merge = 'namedhisto', bins=30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False, markerstyle = 22, markercolor = ROOT.kBlack):
+        """
+            Add single histogram to collection
+            Arguments:
+            styles/bins: See fill method 
+            var: list/np.ndarray unidimensional with values to be histogrammed
+            merge_on: Collection we want to append the new instance
+            to_merge: Name of the key the object will have in self.merge_on attribute
+
+        """
         print(to_merge)
         histo_coll = self.fill(var, name_of = to_merge, set_=False, bins=bins, linestyle=linestyle, linecolor=linecolor, fillcolor=fillcolor, fillstyle=fillstyle, ranges=ranges, markerstyle=markerstyle, markercolor=markercolor)
         histo = histo_coll[to_merge]
         coll_ = getattr(self, merge_on)
         coll_[to_merge] = histo
         setattr(self, merge_on, coll_)
+
+    def mergeColl(self, coll_names, merge_on='new_merged_coll', keep=False ):
+        """
+            Merging two collections into a single one. Pay attention to keys to avoid overwriting
+            Arguments:
+            coll_names: list/np.ndarray of attribute names to be searched in self.
+            merge_on: The name of the newly created merged collection
+            keep: Allows to keep originary collections or free them to save memory
+        """
+        assert len(coll_names) >= 2, "[ERROR] not enough coll_names to merge"
+        
+        new_h_dict = {}
+        for name in coll_names:
+            h_dict = getattr(self, name)
+            for key in h_dict.keys():
+                new_h_dict[key] = h_dict[key]
+            if not keep:
+                delattr(self, name) #free memory
+
+        setattr(self, merge_on, new_h_dict)
+
 
 
     def fill(self, val, name_of='namehisto', bins=30, linestyle=1, linecolor = ROOT.kBlack, fillcolor = 0, fillstyle = 0, ranges=False, markerstyle = 22, markercolor = ROOT.kBlack, set_=True ):
